@@ -1,0 +1,13 @@
+# Python virtual environment
+backend/.venv/
+
+# Python cache files
+backend/__pycache__/
+backend/**/*.pyc
+
+# Secret environment variables
+.env
+backend/.env
+
+# Local development uploads
+backend/uploads/
