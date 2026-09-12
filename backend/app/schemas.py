@@ -1,4 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class LabValue(BaseModel):
@@ -52,3 +55,9 @@ class VerifiedLabValuesRequest(BaseModel):
         min_length=1,
         max_length=100,
     )
+    
+class AnalyzedLabValue(LabValue):
+    """Represents one lab value after transparent range classification."""
+
+    status: Literal["low", "normal", "high", "unknown"]
+    analysis_note: str = Field(alias="analysisNote")

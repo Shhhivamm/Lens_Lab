@@ -44,3 +44,30 @@ export async function submitVerifiedLabValues(values) {
 
   return responseData;
 }
+
+export async function analyzeLabValues(values) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/lab-values/analyze`,
+    {
+      method: "POST",
+      headers: {
+        // The API expects a JSON request body for verified lab values.
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ values }),
+    },
+  );
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    // FastAPI validation errors are returned inside the detail array.
+    const firstValidationError = responseData.detail?.[0]?.msg;
+
+    throw new Error(
+      firstValidationError || "Could not analyze lab values.",
+    );
+  }
+
+  return responseData;
+}

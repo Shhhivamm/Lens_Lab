@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { submitVerifiedLabValues } from "../services/reportApi";
+import {
+  analyzeLabValues,
+  submitVerifiedLabValues,
+} from "../services/reportApi";
 
 const EMPTY_LAB_VALUE = {
   testName: "",
@@ -9,12 +11,22 @@ const EMPTY_LAB_VALUE = {
   highRange: "",
 };
 
+const STATUS_STYLES = {
+  low: "bg-amber-100 text-amber-800",
+  normal: "bg-emerald-100 text-emerald-800",
+  high: "bg-rose-100 text-rose-800",
+  unknown: "bg-slate-100 text-slate-700",
+};
+
 function LabValueReview() {
   const [formData, setFormData] = useState(EMPTY_LAB_VALUE);
   const [labValues, setLabValues] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [analysisResults, setAnalysisResults] = useState([]);
+  const [safetyNotice, setSafetyNotice] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   function handleFieldChange(event) {
     const { name, value } = event.target;
@@ -62,6 +74,31 @@ function LabValueReview() {
     setErrorMessage("Add at least one lab value before submitting.");
     return;
   }
+
+  async function handleAnalyzeLabValues() {
+  if (labValues.length === 0) {
+    setErrorMessage("Add at least one lab value before analysis.");
+    return;
+  }
+
+  setIsAnalyzing(true);
+  setErrorMessage("");
+  setSuccessMessage("");
+
+  try {
+    // Send only user-reviewed values to the analysis endpoint.
+    const response = await analyzeLabValues(labValues);
+
+    // Save the backend response so React can render the status cards.
+    setAnalysisResults(response.results);
+    setSafetyNotice(response.safety_notice);
+  } catch (error) {
+    setErrorMessage(error.message);
+  } finally {
+    // Restore the button state after the API request finishes.
+    setIsAnalyzing(false);
+  }
+}
 
   setIsSubmitting(true);
   setErrorMessage("");

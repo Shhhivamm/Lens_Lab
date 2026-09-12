@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.schemas import VerifiedLabValuesRequest
-
+from app.services.lab_analysis import analyze_lab_value
 
 MAX_FILE_SIZE_IN_MB = 10
 MAX_FILE_SIZE_IN_BYTES = MAX_FILE_SIZE_IN_MB * 1024 * 1024
@@ -106,4 +106,32 @@ def verify_lab_values(
             lab_value.model_dump(by_alias=True)
             for lab_value in payload.values
         ],
+    }
+    
+@app.post("/api/lab-values/analyze")
+def analyze_verified_lab_values(
+    payload: VerifiedLabValuesRequest,
+) -> dict[str, object]:
+    """
+    Classifies verified lab values against their supplied reference ranges.
+
+    This endpoint provides educational range status only.
+    It does not diagnose conditions or recommend treatment.
+    """
+    analyzed_values = [
+        analyze_lab_value(lab_value)
+        for lab_value in payload.values
+    ]
+
+    return {
+        "message": "Lab values classified using supplied reference ranges.",
+        "results": [
+            analyzed_value.model_dump(by_alias=True)
+            for analyzed_value in analyzed_values
+        ],
+        "safety_notice": (
+            "Educational information only. A result outside a reference range "
+            "does not identify a cause or diagnosis. Discuss concerning results "
+            "or symptoms with a qualified healthcare professional."
+        ),
     }
