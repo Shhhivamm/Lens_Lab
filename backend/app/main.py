@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from app.schemas import VerifiedLabValuesRequest
 
 
 MAX_FILE_SIZE_IN_MB = 10
@@ -86,4 +87,23 @@ async def upload_report(
         "file_name": report.filename or "unnamed-report",
         "content_type": report.content_type or "unknown",
         "size_bytes": file_size,
+    }
+    
+@app.post("/api/lab-values/verify")
+def verify_lab_values(
+    payload: VerifiedLabValuesRequest,
+) -> dict[str, object]:
+    """
+    Validates user-reviewed lab values.
+
+    This endpoint does not diagnose or analyze results yet.
+    It prepares trusted structured data for the next analysis step.
+    """
+    return {
+        "message": "Verified lab values received.",
+        "total_values": len(payload.values),
+        "values": [
+            lab_value.model_dump(by_alias=True)
+            for lab_value in payload.values
+        ],
     }

@@ -19,3 +19,28 @@ export async function uploadReport(file) {
 
   return responseData;
 }
+
+export async function submitVerifiedLabValues(values) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/lab-values/verify`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ values }),
+    },
+  );
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    const firstValidationError = responseData.detail?.[0]?.msg;
+
+    throw new Error(
+      firstValidationError || "Could not submit verified lab values.",
+    );
+  }
+
+  return responseData;
+}

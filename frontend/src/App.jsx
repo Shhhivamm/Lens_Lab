@@ -1,5 +1,6 @@
 import Header from "./components/Header";
 import UploadReportCard from "./components/UploadReportCard";
+import LabValueReview from "./components/LabValueReview";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <div className="mt-10 max-w-2xl">
           <UploadReportCard />
         </div>
+        <LabValueReview />
       </section>
     </main>
   );
