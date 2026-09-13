@@ -70,54 +70,57 @@ function LabValueReview() {
     );
   }
 
+  // FIX: this function was previously merged with handleAnalyzeLabValues
+  // (one function was accidentally nested inside the other), which broke
+  // the file. It is now a separate, standalone function again.
   async function handleSubmitVerifiedValues() {
-  if (labValues.length === 0) {
-    setErrorMessage("Add at least one lab value before submitting.");
-    return;
+    if (labValues.length === 0) {
+      setErrorMessage("Add at least one lab value before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await submitVerifiedLabValues(labValues);
+
+      setSuccessMessage(
+        `${response.total_values} verified lab value(s) sent to the backend.`,
+      );
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      // Restore the button state after either success or failure.
+      setIsSubmitting(false);
+    }
   }
 
   async function handleAnalyzeLabValues() {
-  if (labValues.length === 0) {
-    setErrorMessage("Add at least one lab value before analysis.");
-    return;
+    if (labValues.length === 0) {
+      setErrorMessage("Add at least one lab value before analysis.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      // Send only user-reviewed values to the analysis endpoint.
+      const response = await analyzeLabValues(labValues);
+
+      // Save the backend response so React can render the status cards.
+      setAnalysisResults(response.results);
+      setSafetyNotice(response.safety_notice);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      // Restore the button state after the API request finishes.
+      setIsAnalyzing(false);
+    }
   }
-
-  setIsAnalyzing(true);
-  setErrorMessage("");
-  setSuccessMessage("");
-
-  try {
-    // Send only user-reviewed values to the analysis endpoint.
-    const response = await analyzeLabValues(labValues);
-
-    // Save the backend response so React can render the status cards.
-    setAnalysisResults(response.results);
-    setSafetyNotice(response.safety_notice);
-  } catch (error) {
-    setErrorMessage(error.message);
-  } finally {
-    // Restore the button state after the API request finishes.
-    setIsAnalyzing(false);
-  }
-}
-
-  setIsSubmitting(true);
-  setErrorMessage("");
-  setSuccessMessage("");
-
-  try {
-    const response = await submitVerifiedLabValues(labValues);
-
-    setSuccessMessage(
-      `${response.total_values} verified lab value(s) sent to the backend.`,
-    );
-  } catch (error) {
-    setErrorMessage(error.message);
-  } finally {
-    // Restore the button state after either success or failure.
-    setIsSubmitting(false);
-  }
-}
 
   return (
     <section className="mt-10 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -265,25 +268,69 @@ function LabValueReview() {
       )}
 
       {labValues.length > 0 && (
-  <div className="mt-6 flex flex-wrap items-center gap-4">
-    <button
-      type="button"
-      onClick={handleSubmitVerifiedValues}
-      disabled={isSubmitting}
-      className="rounded-lg bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {isSubmitting
-        ? "Submitting values..."
-        : "Submit verified values"}
-    </button>
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <button
+            type="button"
+            onClick={handleSubmitVerifiedValues}
+            disabled={isSubmitting}
+            className="rounded-lg bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting
+              ? "Submitting values..."
+              : "Submit verified values"}
+          </button>
 
-    {successMessage && (
-      <p className="text-sm font-semibold text-emerald-700">
-        {successMessage}
-      </p>
-    )}
-  </div>
-)}
+                    {successMessage && (
+            <p className="text-sm font-semibold text-emerald-700">
+              {successMessage}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleAnalyzeLabValues}
+            disabled={isAnalyzing}
+            className="rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isAnalyzing ? "Analyzing..." : "Analyze values"}
+          </button>
+        </div>
+      )}
+
+      {/* Analysis results are shown only after the backend responds.
+          Each card uses STATUS_STYLES so low/normal/high/unknown are
+          visually distinct at a glance. */}
+      {analysisResults.length > 0 && (
+        <div className="mt-8 space-y-3">
+          <h3 className="text-lg font-bold text-slate-900">
+            Analysis results
+          </h3>
+
+          {analysisResults.map((result) => (
+            <div
+              key={result.testName}
+              className={`rounded-xl p-4 ${STATUS_STYLES[result.status]}`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-semibold">{result.testName}</p>
+                <span className="text-xs font-bold uppercase tracking-wide">
+                  {result.status}
+                </span>
+              </div>
+
+              <p className="mt-1 text-sm">{result.analysisNote}</p>
+            </div>
+          ))}
+
+          {/* Medical-safety requirement: every analysis view must show
+              this educational disclaimer alongside the results. */}
+          {safetyNotice && (
+            <p className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-medium text-slate-700">
+              {safetyNotice}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
