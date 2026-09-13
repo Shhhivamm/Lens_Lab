@@ -47,13 +47,59 @@ function LabValueReview() {
       return;
     }
 
+    const trimmedTestName = formData.testName.trim();
+    const numericValue = Number(formData.value);
+
+    // Reject non-numeric, infinite, or negative results. Lab measurements
+    // (counts, concentrations, enzyme levels, etc.) cannot be negative,
+    // so this catches obvious data-entry mistakes before analysis.
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+      setErrorMessage("Result value must be a valid, non-negative number.");
+      return;
+    }
+
+    // Prevent adding the same test twice (case-insensitive, ignoring extra
+    // spacing). Two rows for one test would make the analysis results
+    // ambiguous about which value is the "real" one.
+    const isDuplicateTestName = labValues.some(
+      (labValue) =>
+        labValue.testName.toLowerCase() === trimmedTestName.toLowerCase(),
+    );
+
+    if (isDuplicateTestName) {
+      setErrorMessage(
+        `"${trimmedTestName}" has already been added. Remove it first if you want to change its value.`,
+      );
+      return;
+    }
+
+    // Reference-range inputs are optional, but if entered they must also
+    // be valid, non-negative numbers — otherwise Number("") or a stray
+    // value would silently become NaN and break later comparisons.
+    const numericLowRange = formData.lowRange
+      ? Number(formData.lowRange)
+      : null;
+    const numericHighRange = formData.highRange
+      ? Number(formData.highRange)
+      : null;
+
+    if (
+      (numericLowRange !== null &&
+        (!Number.isFinite(numericLowRange) || numericLowRange < 0)) ||
+      (numericHighRange !== null &&
+        (!Number.isFinite(numericHighRange) || numericHighRange < 0))
+    ) {
+      setErrorMessage("Reference range values must be valid, non-negative numbers.");
+      return;
+    }
+
     const newLabValue = {
       id: crypto.randomUUID(),
-      testName: formData.testName.trim(),
-      value: Number(formData.value),
+      testName: trimmedTestName,
+      value: numericValue,
       unit: formData.unit.trim(),
-      lowRange: formData.lowRange ? Number(formData.lowRange) : null,
-      highRange: formData.highRange ? Number(formData.highRange) : null,
+      lowRange: numericLowRange,
+      highRange: numericHighRange,
     };
 
     setLabValues((currentLabValues) => [
