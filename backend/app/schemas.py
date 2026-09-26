@@ -1,9 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
-
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-
 class LabValue(BaseModel):
     """
     Represents one user-reviewed lab result.
@@ -19,7 +15,7 @@ class LabValue(BaseModel):
         min_length=1,
         max_length=100,
     )
-    value: float
+    value: float = Field(ge=0)
     unit: str = Field(
         min_length=1,
         max_length=30,
@@ -27,10 +23,12 @@ class LabValue(BaseModel):
     low_range: float | None = Field(
         default=None,
         alias="lowRange",
+        ge=0,
     )
     high_range: float | None = Field(
         default=None,
         alias="highRange",
+        ge=0,
     )
 
     @model_validator(mode="after")
@@ -55,6 +53,31 @@ class VerifiedLabValuesRequest(BaseModel):
         min_length=1,
         max_length=100,
     )
+
+    @model_validator(mode="after")
+    def validate_no_duplicate_test_names(self):
+        """
+        Rejects requests where the same test appears more than once
+        (case-insensitive, ignoring extra spacing). This mirrors the
+        frontend check, but must also be enforced here because any
+        client could call this API directly and bypass the browser
+        validation entirely.
+        """
+        seen_test_names = set()
+
+        for lab_value in self.values:
+            normalized_name = lab_value.test_name.strip().lower()
+
+            if normalized_name in seen_test_names:
+                raise ValueError(
+                    f'Duplicate test name found: "{lab_value.test_name}". '
+                    "Each test must appear only once per request."
+                )
+
+            seen_test_names.add(normalized_name)
+
+        return self
+
     
 class AnalyzedLabValue(LabValue):
     """Represents one lab value after transparent range classification."""
